@@ -8,7 +8,7 @@ try:
     #flatten it to plain text
 
     transcript=" ".join(chunk.text for chunk in transcript_list)
-    print(transcript) 
+   
 except TranscriptsDisabled:
    print("No captions available for this video")
 

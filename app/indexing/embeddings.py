@@ -1,11 +1,12 @@
-from textSplitting import chunks    
+from app.indexing.textSplitting import chunks  
 from langchain_community.vectorstores.faiss import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="models/gemini-embedding-001"
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 vectorstore = FAISS.from_documents(chunks, embeddings)
 
-print(vectorstore.index_to_docstore_id)
+

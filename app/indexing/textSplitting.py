@@ -1,4 +1,4 @@
-from document_ingestion import transcript
+from .document_ingestion import transcript
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
 load_dotenv()
