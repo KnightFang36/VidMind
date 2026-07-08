@@ -1,6 +1,6 @@
-# UtubeChat
+# VidMind
 
-UtubeChat is an AI-powered browser extension for Chrome and Firefox that allows users to interact with YouTube videos through natural language. It extracts the video's transcript, builds a Retrieval-Augmented Generation (RAG) pipeline, and enables users to ask questions or generate summaries based on the video's content.
+VidMind is an AI-powered browser extension that lets users interact with YouTube videos through natural language. Its FastAPI backend extracts a transcript, builds a per-video FAISS index, and answers questions using a RAG pipeline.
 
 ## Features
 
@@ -13,69 +13,62 @@ UtubeChat is an AI-powered browser extension for Chrome and Firefox that allows 
 
 ## Tech Stack
 
-### Frontend
+### Extension
 
-- Next.js 15
-- React 19
+- Plasmo
+- React
 - TypeScript
-- Tailwind CSS v4
-- shadcn/ui
-- WXT (Web Extension Framework)
 
 ### AI & RAG
 
 - Vercel AI SDK
 - LangChain
-- OpenAI / Anthropic / Gemini APIs
-- OpenAI Embeddings
-- pgvector
+- Groq
+- Hugging Face embeddings
+- FAISS
 
 ### Backend
 
-- Next.js API Routes
-- PostgreSQL
-- Prisma ORM
-- Upstash Redis
-
-### Deployment
-
-- Vercel
-- Neon PostgreSQL
+- FastAPI
+- Pydantic
 
 ## Project Structure
 
 ```text
-utubeChat/
-├── apps/
-│   ├── extension/      # Browser extension
-│   └── web/            # Landing page and API routes
-├── packages/
-│   ├── ai/             # RAG pipeline
-│   ├── ui/             # Shared UI components
-│   └── utils/          # Shared utilities
+VidMind/
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/routes/   # Chat and indexing endpoints
+│   │   ├── core/            # Configuration
+│   │   ├── schemas/         # Request and response models
+│   │   ├── services/        # Transcript, embedding, indexing, and RAG
+│   │   └── main.py          # FastAPI entry point
+│   ├── tests/
+│   └── requirements.txt
+├── extension/
+│   ├── assets/
+│   ├── background/
+│   ├── contents/
+│   ├── sidebar/
+│   ├── package.json
+│   └── manifest.json
 └── README.md
 ```
 
-## Roadmap
+## Run Locally
 
-- [ ] Set up the browser extension with WXT
-- [ ] Extract YouTube transcripts
-- [ ] Chunk transcript data
-- [ ] Generate embeddings
-- [ ] Implement the RAG pipeline
-- [ ] Build the AI chat interface
-- [ ] Add video summary generation
-- [ ] Store chat history
-- [ ] Support multiple AI models
-- [ ] Optimize performance
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env
+uvicorn backend.app.main:app --reload
+```
 
+In another terminal:
 
-
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-**Status:** Work in Progress
+```bash
+cd extension
+npm install
+npm run dev
+```

@@ -1,0 +1,47 @@
+:root {
+  color: #171717;
+  font-family: Inter, system-ui, sans-serif;
+  background: #fafafa;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 4px;
+}
+
+p {
+  color: #666;
+  margin-top: 0;
+}
+
+textarea {
+  box-sizing: border-box;
+  min-height: 110px;
+  width: 100%;
+  padding: 12px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+section {
+  margin-top: 18px;
+  padding: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}

@@ -3,3 +3,17 @@
 venv/
 env/
 ENV/
+
+# Secrets
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Extension
+extension/node_modules/
+extension/build/
+extension/.plasmo/

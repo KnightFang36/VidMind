@@ -1,0 +1,31 @@
+{
+  "name": "vidmind-extension",
+  "displayName": "VidMind",
+  "version": "0.1.0",
+  "description": "Chat with YouTube videos using VidMind.",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package"
+  },
+  "dependencies": {
+    "@plasmohq/messaging": "latest",
+    "plasmo": "latest",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "latest",
+    "@types/node": "latest",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.0.0"
+  },
+  "manifest": {
+    "permissions": ["activeTab", "sidePanel"],
+    "host_permissions": [
+      "https://www.youtube.com/*",
+      "http://localhost:8000/*"
+    ]
+  }
+}

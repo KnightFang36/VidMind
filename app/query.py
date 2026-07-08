@@ -1,1 +1,0 @@
-query="Can you summarise the video in 10 detailed points?"
