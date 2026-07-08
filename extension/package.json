@@ -2,7 +2,7 @@
   "name": "vidmind-extension",
   "displayName": "VidMind",
   "version": "0.1.0",
-  "description": "Chat with YouTube videos using VidMind.",
+  "description": "A focused companion sidebar for YouTube.",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
@@ -22,10 +22,11 @@
     "typescript": "^5.0.0"
   },
   "manifest": {
-    "permissions": ["activeTab", "sidePanel"],
-    "host_permissions": [
-      "https://www.youtube.com/*",
-      "http://localhost:8000/*"
-    ]
+    "minimum_chrome_version": "116",
+    "permissions": ["sidePanel"],
+    "host_permissions": ["https://www.youtube.com/*"],
+    "action": {
+      "default_title": "Open VidMind"
+    }
   }
 }

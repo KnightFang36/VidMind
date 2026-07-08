@@ -2,19 +2,17 @@
   "manifest_version": 3,
   "name": "VidMind",
   "version": "0.1.0",
-  "description": "Chat with the YouTube video you are watching.",
-  "permissions": ["activeTab", "sidePanel"],
-  "host_permissions": [
-    "https://www.youtube.com/*",
-    "http://localhost:8000/*"
-  ],
+  "description": "A focused companion sidebar for YouTube.",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel"],
+  "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "background/index.ts",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/watch*"],
+      "matches": ["https://www.youtube.com/*"],
       "js": ["contents/youtube.ts"]
     }
   ],
