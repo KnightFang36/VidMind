@@ -1,1 +1,1 @@
-query="is the topic of nuclear fusion discussed in the video?if yes what was discqussed about it?"
+query="Can you summarise the video in 10 detailed points?"
