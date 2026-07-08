@@ -7,19 +7,26 @@
   "permissions": ["sidePanel"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
-    "service_worker": "background/index.ts",
+    "service_worker": "src/background/index.ts",
     "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["contents/youtube.ts"]
+      "js": ["src/content/youtube.ts"]
     }
   ],
   "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_path": "src/sidebar/index.html"
   },
   "action": {
-    "default_title": "Open VidMind"
+    "default_title": "Open VidMind",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   }
 }

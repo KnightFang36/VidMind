@@ -1,4 +1,4 @@
-import "./styles.css"
+import "./styles/index.css"
 
 function VidMindMark() {
   return (
@@ -16,7 +16,7 @@ function VidMindMark() {
   )
 }
 
-export function Sidebar() {
+export function App() {
   return (
     <main className="sidebar-shell">
       <div className="ambient-glow" />

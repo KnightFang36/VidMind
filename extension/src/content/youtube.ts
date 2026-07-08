@@ -1,8 +1,4 @@
-import type { PlasmoCSConfig } from "plasmo"
-
-export const config: PlasmoCSConfig = {
-  matches: ["https://www.youtube.com/*"]
-}
+import type { ExtensionMessage } from "../utils/messages"
 
 const TRIGGER_HOST_ID = "vidmind-trigger-host"
 
@@ -101,7 +97,9 @@ function createVidMindTrigger() {
   `
 
   button.addEventListener("click", () => {
-    chrome.runtime.sendMessage({ type: "VIDMIND_OPEN_SIDEBAR" }).catch((error) => {
+    const message: ExtensionMessage = { type: "VIDMIND_OPEN_SIDEBAR" }
+
+    chrome.runtime.sendMessage(message).catch((error: unknown) => {
       console.error("VidMind could not open the sidebar.", error)
     })
   })

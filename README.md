@@ -15,9 +15,13 @@ VidMind is an AI-powered browser extension that lets users interact with YouTube
 
 ### Extension
 
-- Plasmo
+- Vite + CRXJS
 - React
 - TypeScript
+- Tailwind CSS
+- Motion
+- Lucide React
+- Zustand
 
 ### AI & RAG
 
@@ -46,12 +50,17 @@ VidMind/
 │   ├── tests/
 │   └── requirements.txt
 ├── extension/
-│   ├── assets/
-│   ├── background/
-│   ├── contents/
-│   ├── sidebar/
+│   ├── public/manifest.json
+│   ├── docs/
+│   ├── src/
+│   │   ├── background/
+│   │   ├── content/
+│   │   ├── sidebar/
+│   │   ├── popup/
+│   │   ├── api/
+│   │   └── utils/
 │   ├── package.json
-│   └── manifest.json
+│   └── vite.config.ts
 └── README.md
 ```
 
@@ -72,6 +81,9 @@ cd extension
 npm install
 npm run dev
 ```
+
+For a production build, run `npm run build`, then load `extension/dist` as an
+unpacked extension in a Chromium-based browser.
 
 ## License
 

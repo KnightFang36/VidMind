@@ -1,4 +1,4 @@
-# VidMind Sidebar Design
+# VidMind Sidebar Design Specification
 
 ## Product feel
 
