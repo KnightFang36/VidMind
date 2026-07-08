@@ -1,4 +1,4 @@
-# UtubeChat
+# VidMind
 
 UtubeChat is an AI-powered browser extension for Chrome and Firefox that allows users to interact with YouTube videos through natural language. It extracts the video's transcript, builds a Retrieval-Augmented Generation (RAG) pipeline, and enables users to ask questions or generate summaries based on the video's content.
 
