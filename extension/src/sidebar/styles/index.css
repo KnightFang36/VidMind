@@ -6,6 +6,8 @@
     "Segoe UI", sans-serif;
   background: #0f1115;
   color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -15,61 +17,180 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
   margin: 0;
   min-width: 300px;
-}
-
-.sidebar-shell {
-  align-items: center;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(79, 124, 255, 0.08), transparent 42%),
-    #0f1115;
-  display: flex;
-  isolation: isolate;
-  justify-content: center;
-  min-height: 100vh;
   overflow: hidden;
-  position: relative;
 }
 
-.ambient-glow {
-  background: #4f7cff;
-  border-radius: 50%;
-  filter: blur(80px);
-  height: 120px;
-  opacity: 0.1;
-  position: absolute;
-  width: 120px;
-  z-index: -1;
+button,
+textarea {
+  font: inherit;
 }
 
-.brand {
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+* {
+  scrollbar-color: #343a47 transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #343a47;
+  border-radius: 999px;
+}
+
+.icon-button {
   align-items: center;
-  display: flex;
-  font-size: 20px;
-  font-weight: 650;
-  gap: 11px;
-  letter-spacing: -0.02em;
-}
-
-.brand-mark {
-  align-items: center;
-  background: #4f7cff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 11px;
-  box-shadow: 0 10px 28px rgba(79, 124, 255, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  display: flex;
-  height: 38px;
+  border-radius: 8px;
+  color: #7f8796;
+  display: inline-flex;
+  height: 36px;
   justify-content: center;
-  width: 38px;
+  transition: background-color 150ms ease, color 150ms ease;
+  width: 36px;
 }
 
-.brand-mark svg {
-  height: 22px;
-  width: 22px;
+.icon-button:not(:disabled):hover {
+  background: #171a21;
+  color: #e4e8ee;
+}
+
+.icon-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.icon-button:focus-visible,
+.suggestion-chip:focus-visible,
+.send-button:focus-visible {
+  outline: 2px solid #4f7cff;
+  outline-offset: 2px;
+}
+
+.suggestion-chip {
+  align-items: center;
+  background: #151820;
+  border: 1px solid #292e3a;
+  border-radius: 999px;
+  color: #aeb5c1;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 500;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  transition: background-color 150ms ease, border-color 150ms ease,
+    color 150ms ease, transform 150ms ease;
+}
+
+.suggestion-chip:hover {
+  background: #1a1e27;
+  border-color: #3a465e;
+  color: #e2e6ec;
+  transform: translateY(-1px);
+}
+
+.composer-scrim {
+  background: linear-gradient(to bottom, transparent, #0f1115 18px);
+}
+
+.composer-card {
+  align-items: flex-end;
+  background: #171a21;
+  border: 1px solid #303644;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  display: flex;
+  gap: 10px;
+  min-height: 50px;
+  padding: 12px 10px 12px 14px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.composer-card:focus-within {
+  border-color: #4a5f92;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.26),
+    0 0 0 3px rgba(79, 124, 255, 0.09);
+}
+
+.send-button {
+  align-items: center;
+  background: #4f7cff;
+  border-radius: 9px;
+  color: #ffffff;
+  display: inline-flex;
+  flex: none;
+  height: 30px;
+  justify-content: center;
+  transition: background-color 150ms ease, opacity 150ms ease,
+    transform 150ms ease;
+  width: 30px;
+}
+
+.send-button:not(:disabled):hover {
+  background: #628aff;
+  transform: translateY(-1px);
+}
+
+.send-button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.send-button:disabled {
+  background: #2a303c;
+  color: #687181;
+  opacity: 0.8;
+}
+
+.skeleton-line {
+  animation: skeleton-pulse 1.45s ease-in-out infinite;
+  background: linear-gradient(90deg, #1a1e26 20%, #252b36 50%, #1a1e26 80%);
+  background-size: 200% 100%;
+  border-radius: 999px;
+  display: block;
+  height: 9px;
+}
+
+@keyframes skeleton-pulse {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skeleton-line {
+    animation: none;
+    background: #252b36;
+  }
 }
