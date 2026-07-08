@@ -1,8 +1,8 @@
 {
-  "name": "vidmind-extension",
-  "displayName": "VidMind",
+  "name": "utubechat-extension",
+  "displayName": "uTubeChat",
   "version": "0.1.0",
-  "description": "Chat with YouTube videos using VidMind.",
+  "description": "Chat with YouTube videos using uTubeChat.",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",

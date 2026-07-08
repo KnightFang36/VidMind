@@ -1,6 +1,6 @@
-# VidMind
+# uTubeChat
 
-VidMind is an AI-powered browser extension that lets users interact with YouTube videos through natural language. Its FastAPI backend extracts a transcript, builds a per-video FAISS index, and answers questions using a RAG pipeline.
+uTubeChat is an AI-powered browser extension that lets users interact with YouTube videos through natural language. Its FastAPI backend extracts a transcript, builds a per-video FAISS index, and answers questions using a RAG pipeline.
 
 ## Features
 
@@ -35,7 +35,7 @@ VidMind is an AI-powered browser extension that lets users interact with YouTube
 ## Project Structure
 
 ```text
-VidMind/
+uTubeChat/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/routes/   # Chat and indexing endpoints
