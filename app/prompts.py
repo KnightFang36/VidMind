@@ -11,4 +11,3 @@ prompt= PromptTemplate(
 
 final_prompt=prompt.invoke({"context": context_text, "question": query})
 
-print(final_prompt)
