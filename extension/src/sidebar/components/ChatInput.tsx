@@ -6,6 +6,7 @@ interface ChatInputProps {
   onChange: (value: string) => void
   onSubmit: () => void
   disabled?: boolean
+  helperText?: string
 }
 
 const MAX_TEXTAREA_HEIGHT = 120
@@ -14,7 +15,8 @@ export function ChatInput({
   value,
   onChange,
   onSubmit,
-  disabled = false
+  disabled = false,
+  helperText = "VidMind can make mistakes. Check important details."
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -67,7 +69,7 @@ export function ChatInput({
         </button>
       </div>
       <p className="mt-2 text-center text-[10px] leading-4 text-[#636B79]">
-        VidMind can make mistakes. Check important details.
+        {helperText}
       </p>
     </form>
   )

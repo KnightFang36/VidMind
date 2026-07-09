@@ -1,9 +1,56 @@
-import type { ExtensionMessage } from "../utils/messages"
-
 const TRIGGER_HOST_ID = "vidmind-trigger-host"
+const STORAGE_KEY = "vidmind.videoContext"
+
+type TranscriptStatus = "idle" | "loading" | "ready" | "unavailable"
+
+interface VideoContextState {
+  videoId: string
+  title: string
+  available: boolean
+  url: string
+  transcriptStatus: TranscriptStatus
+  updatedAt: number
+}
+
+const DEFAULT_CONTEXT: VideoContextState = {
+  videoId: "",
+  title: "Open a YouTube watch page",
+  available: false,
+  url: "",
+  transcriptStatus: "idle",
+  updatedAt: 0
+}
+
+let refreshToken = 0
+
+function isWatchPage() {
+  return window.location.hostname === "www.youtube.com" && window.location.pathname === "/watch"
+}
+
+function extractVideoId() {
+  const url = new URL(window.location.href)
+  const id = url.searchParams.get("v")?.trim()
+  return id && id.length > 0 ? id : ""
+}
+
+function extractVideoTitle() {
+  const heading = document.querySelector<HTMLHeadingElement>("h1")?.textContent?.trim()
+  if (heading) return heading
+
+  const title = document.title
+    .replace(/\s*-\s*YouTube\s*$/i, "")
+    .replace(/\s*\|\s*YouTube\s*$/i, "")
+    .trim()
+
+  return title || "YouTube video"
+}
+
+function updateStoredContext(context: VideoContextState) {
+  chrome.storage.session.set({ [STORAGE_KEY]: context })
+}
 
 function createVidMindTrigger() {
-  if (document.getElementById(TRIGGER_HOST_ID)) return
+  if (document.getElementById(TRIGGER_HOST_ID)) return document.getElementById(TRIGGER_HOST_ID)
 
   const host = document.createElement("div")
   host.id = TRIGGER_HOST_ID
@@ -97,15 +144,54 @@ function createVidMindTrigger() {
   `
 
   button.addEventListener("click", () => {
-    const message: ExtensionMessage = { type: "VIDMIND_OPEN_SIDEBAR" }
-
-    chrome.runtime.sendMessage(message).catch((error: unknown) => {
+    chrome.runtime.sendMessage({ type: "VIDMIND_OPEN_SIDEBAR" }).catch((error: unknown) => {
       console.error("VidMind could not open the sidebar.", error)
     })
   })
 
   shadowRoot.append(style, button)
   document.documentElement.append(host)
+  return host
+}
+
+function setTriggerVisibility(host: HTMLElement | null, visible: boolean) {
+  if (!host) return
+  host.style.display = visible ? "block" : "none"
+}
+
+async function refreshPageContext() {
+  const token = ++refreshToken
+  const host = document.getElementById(TRIGGER_HOST_ID)
+
+  if (!isWatchPage()) {
+    setTriggerVisibility(host, false)
+    updateStoredContext(DEFAULT_CONTEXT)
+    return
+  }
+
+  if (!host) createVidMindTrigger()
+  setTriggerVisibility(document.getElementById(TRIGGER_HOST_ID), true)
+
+  const context: VideoContextState = {
+    videoId: extractVideoId(),
+    title: extractVideoTitle(),
+    available: true,
+    url: window.location.href,
+    transcriptStatus: "idle",
+    updatedAt: Date.now()
+  }
+
+  updateStoredContext(context)
+  console.info("VidMind: Video Found", context.title)
 }
 
 createVidMindTrigger()
+void refreshPageContext()
+
+window.addEventListener("yt-navigate-finish", () => {
+  void refreshPageContext()
+})
+
+window.addEventListener("popstate", () => {
+  void refreshPageContext()
+})

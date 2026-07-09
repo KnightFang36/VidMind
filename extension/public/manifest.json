@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "A focused companion sidebar for YouTube.",
   "minimum_chrome_version": "116",
-  "permissions": ["sidePanel"],
+  "permissions": ["sidePanel", "storage", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "src/background/index.ts",
