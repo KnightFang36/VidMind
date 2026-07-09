@@ -1,15 +1,21 @@
 {
   "manifest_version": 3,
   "name": "VidMind",
+  "description": "Chat with any YouTube video using AI.",
   "version": "0.1.0",
-  "description": "A focused companion sidebar for YouTube.",
-  "minimum_chrome_version": "116",
-  "permissions": ["sidePanel", "storage", "tabs"],
+  "permissions": ["sidePanel", "storage", "activeTab", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "vidmind@manroy.dev"
-    }
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_title": "Open VidMind"
+  },
+  "side_panel": {
+    "default_path": "src/sidebar/index.html"
   },
   "background": {
     "service_worker": "src/background/index.ts",
@@ -18,20 +24,8 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["src/content/youtube.ts"]
+      "js": ["src/content/youtube.ts"],
+      "run_at": "document_idle"
     }
-  ],
-  "side_panel": {
-    "default_path": "src/sidebar/index.html"
-  },
-  "action": {
-    "default_title": "Open VidMind",
-    "default_icon": "icon.png"
-  },
-  "icons": {
-    "16": "icon.png",
-    "32": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  }
+  ]
 }
