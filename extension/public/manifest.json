@@ -6,13 +6,19 @@
   "permissions": ["sidePanel", "storage", "activeTab", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
   "icons": {
-    "16": "assets/icon16.png",
-    "32": "assets/icon32.png",
-    "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
+    "16": "icon16.plasmo.6c567d50.png",
+    "32": "icon32.plasmo.76b92899.png",
+    "48": "icon48.plasmo.aced7582.png",
+    "128": "icon128.plasmo.3c1ed2d2.png"
   },
   "action": {
-    "default_title": "Open VidMind"
+    "default_title": "Open VidMind",
+    "default_icon": {
+      "16": "icon16.plasmo.6c567d50.png",
+      "32": "icon32.plasmo.76b92899.png",
+      "48": "icon48.plasmo.aced7582.png",
+      "128": "icon128.plasmo.3c1ed2d2.png"
+    }
   },
   "side_panel": {
     "default_path": "src/sidebar/index.html"
