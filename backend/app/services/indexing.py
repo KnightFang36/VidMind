@@ -44,4 +44,6 @@ class VideoIndexService:
             self.ensure_indexed(video_id)
 
         store = self._stores[video_id]
-        return store.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+        return store.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+    
+    
