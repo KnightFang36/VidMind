@@ -19,3 +19,5 @@ extension/build/
 extension/.plasmo/
 extension/dist/
 *.tsbuildinfo
+
+backend/data/
