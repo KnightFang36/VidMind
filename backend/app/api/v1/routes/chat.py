@@ -10,11 +10,8 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     service: RagService = request.app.state.rag
     try:
-        answer = service.answer(payload.video_id, payload.question)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail="Video is not indexed. Call POST /api/v1/index first.",
-        ) from exc
+        answer = service.answer(payload.video_id, payload.query)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    return ChatResponse(video_id=payload.video_id, answer=answer)
+    return ChatResponse(video_id=payload.video_id, query=payload.query, answer=answer)

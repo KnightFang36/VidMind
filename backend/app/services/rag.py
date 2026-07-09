@@ -32,16 +32,17 @@ class RagService:
     def __init__(self, video_index: VideoIndexService) -> None:
         self._video_index = video_index
 
-    def answer(self, video_id: str, question: str) -> str:
+    def answer(self, video_id: str, query: str) -> str:
+        self._video_index.ensure_indexed(video_id)
         retriever = self._video_index.get_retriever(video_id)
-        context = itemgetter("question") | retriever | RunnableLambda(_format_documents)
+        context = itemgetter("query") | retriever | RunnableLambda(_format_documents)
         chain = (
             RunnableParallel(
                 context=context,
-                question=itemgetter("question") | RunnablePassthrough(),
+                query=itemgetter("query") | RunnablePassthrough(),
             )
             | PROMPT
             | get_llm()
             | StrOutputParser()
         )
-        return chain.invoke({"question": question})
+        return chain.invoke({"query": query})

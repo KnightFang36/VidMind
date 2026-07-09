@@ -1,113 +1,77 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "motion/react"
 
+import { sendChatRequest } from "../api/chat"
 import { ChatInput } from "./components/ChatInput"
 import { ChatWindow } from "./components/ChatWindow"
 import { EmptyState } from "./components/EmptyState"
 import { Header } from "./components/Header"
-import type { ChatMessage, MessageSource, VideoContext } from "./types"
 import { useVideoContext } from "./hooks/useVideoContext"
+import type { ChatMessage, VideoContext } from "./types"
 import "./styles/index.css"
 
-type AssistantTurn = {
-  content: string
-  sources: MessageSource[]
-}
-
-const assistantTurns: AssistantTurn[] = [
-  {
-    content:
-      "Attention lets the model decide which tokens matter most at each step. Instead of treating every word equally, it builds a weighted context from the most relevant parts of the sequence.",
-    sources: [
-      { id: "src-1", timestamp: "00:32" },
-      { id: "src-2", timestamp: "04:11" },
-      { id: "src-3", timestamp: "09:15" }
-    ]
-  },
-  {
-    content:
-      "CNNs detect local patterns by sliding learned filters across an image or signal. Early layers tend to find edges and textures, while deeper layers combine those features into higher-level structure.",
-    sources: [
-      { id: "src-4", timestamp: "01:05" },
-      { id: "src-5", timestamp: "03:40" }
-    ]
-  },
-  {
-    content:
-      "A useful way to think about this video is in three passes: what the model sees, how it prioritizes context, and where that context comes from. That keeps the explanation compact without losing the chain of reasoning.",
-    sources: [
-      { id: "src-6", timestamp: "02:18" },
-      { id: "src-7", timestamp: "06:02" }
-    ]
+function buildPayload(videoContext: VideoContext, query: string) {
+  return {
+    videoId: videoContext.videoId,
+    query
   }
-]
+}
 
 export function App() {
   const videoContext = useVideoContext()
   const [draft, setDraft] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
-  const turnIndexRef = useRef(0)
-  const replyTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     setMessages([])
     setDraft("")
     setLoading(false)
-    turnIndexRef.current = 0
-
-    if (replyTimerRef.current !== null) {
-      window.clearTimeout(replyTimerRef.current)
-      replyTimerRef.current = null
-    }
   }, [videoContext.url])
 
-  useEffect(() => {
-    return () => {
-      if (replyTimerRef.current !== null) {
-        window.clearTimeout(replyTimerRef.current)
-      }
-    }
-  }, [])
-
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!draft.trim() || loading || !videoContext.available) return
 
-    const question = draft.trim()
-    const response = assistantTurns[turnIndexRef.current % assistantTurns.length]
-    const ragPayload = {
-      query: question,
-      videoId: videoContext.videoId,
-      videoTitle: videoContext.title,
-      videoUrl: videoContext.url
-    }
-    console.info("VidMind RAG payload", ragPayload)
-    turnIndexRef.current += 1
+    const query = draft.trim()
+    const payload = buildPayload(videoContext, query)
+    console.info("VidMind request payload", payload)
 
     setMessages((currentMessages) => [
       ...currentMessages,
       {
         id: `user-${Date.now()}`,
         role: "user",
-        content: question
+        content: query
       }
     ])
     setDraft("")
     setLoading(true)
 
-    replyTimerRef.current = window.setTimeout(() => {
+    try {
+      const response = await sendChatRequest(payload)
       setMessages((currentMessages) => [
         ...currentMessages,
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: response.content,
-          sources: response.sources
+          content: response.answer
         }
       ])
+    } catch (error) {
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content:
+            error instanceof Error
+              ? `Backend request failed: ${error.message}`
+              : "Backend request failed."
+        }
+      ])
+    } finally {
       setLoading(false)
-      replyTimerRef.current = null
-    }, 820)
+    }
   }
 
   const videoTitle = videoContext.available ? videoContext.title : "Open a YouTube watch page"
@@ -122,7 +86,11 @@ export function App() {
 
   return (
     <motion.main
-      className="relative flex h-dvh min-h-105 flex-col overflow-hidden bg-[#0F1115] text-[#F5F7FA]"
+      className="relative flex h-dvh min-h-105 flex-col overflow-hidden"
+      style={{
+        backgroundColor: "var(--vidmind-canvas)",
+        color: "var(--vidmind-text)"
+      }}
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -144,16 +112,25 @@ export function App() {
         />
 
         <div className="border-b border-[#1B1F28] px-4 py-3">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#262B36] bg-[#151820] px-3 py-2.5">
+          <div
+            className="flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5"
+            style={{
+              borderColor: "var(--vidmind-border)",
+              backgroundColor: "color-mix(in srgb, var(--vidmind-surface) 92%, transparent)"
+            }}
+          >
             <div>
-              <p className="text-[10px] font-semibold tracking-[0.09em] text-[#777F90] uppercase">
+              <p
+                className="text-[10px] font-semibold tracking-[0.09em] uppercase"
+                style={{ color: "var(--vidmind-muted)" }}
+              >
                 Video ID
               </p>
-              <p className="mt-0.5 text-[12px] leading-5 text-[#DDE1E8]">
+              <p className="mt-0.5 text-[12px] leading-5" style={{ color: "var(--vidmind-text)" }}>
                 {videoContext.videoId || "Waiting for YouTube watch page"}
               </p>
             </div>
-            <div className="text-right text-[11px] leading-4 text-[#7B8392]">
+            <div className="text-right text-[11px] leading-4" style={{ color: "var(--vidmind-muted)" }}>
               <p>{videoContext.available ? "Ready for query grounding" : "Waiting for video"}</p>
               <p>Transcript fetch happens in RAG</p>
             </div>
@@ -169,7 +146,14 @@ export function App() {
             </div>
           ) : (
             <div className="flex min-h-full items-center justify-center px-4 py-8 text-center">
-              <div className="max-w-64 rounded-3xl border border-[#262B36] bg-[#171A21]/80 px-5 py-4 text-[13px] leading-6 text-[#9299A8] shadow-[0_14px_36px_rgba(0,0,0,0.16)] backdrop-blur-sm">
+              <div
+                className="max-w-64 rounded-3xl border px-5 py-4 text-[13px] leading-6 shadow-[0_14px_36px_rgba(0,0,0,0.16)] backdrop-blur-sm"
+                style={{
+                  borderColor: "var(--vidmind-border)",
+                  backgroundColor: "color-mix(in srgb, var(--vidmind-surface) 80%, transparent)",
+                  color: "var(--vidmind-muted)"
+                }}
+              >
                 Open a YouTube watch page to bring the sidebar to life.
               </div>
             </div>

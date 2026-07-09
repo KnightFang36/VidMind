@@ -6,6 +6,11 @@
   "minimum_chrome_version": "116",
   "permissions": ["sidePanel", "storage", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vidmind@manroy.dev"
+    }
+  },
   "background": {
     "service_worker": "src/background/index.ts",
     "type": "module"
