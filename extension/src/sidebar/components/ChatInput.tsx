@@ -50,7 +50,7 @@ export function ChatInput({
         <textarea
           ref={textareaRef}
           id="vidmind-question"
-          className="max-h-[120px] min-h-6 flex-1 resize-none overflow-y-auto bg-transparent text-[13px] leading-6 text-[#F5F7FA] outline-none placeholder:text-[#6F7786]"
+          className="max-h-30 min-h-6 flex-1 resize-none overflow-y-auto bg-transparent text-[13px] leading-6 text-[#F5F7FA] outline-none placeholder:text-[#6F7786]"
           rows={1}
           value={value}
           onChange={(event) => onChange(event.target.value)}

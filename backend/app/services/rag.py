@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from functools import lru_cache
+from dataclasses import dataclass, field
 from operator import itemgetter
 
 from langchain_core.output_parsers import StrOutputParser
@@ -23,36 +22,41 @@ PROMPT = PromptTemplate(
 @dataclass
 class RagAnswer:
     answer: str
-    sources: list[dict]
+    sources: list[dict] = field(default_factory=list)
 
 
 def _format_documents(documents) -> str:
-    return "\n\n".join(document.page_content for document in documents)
+    return "\n\n".join(doc.page_content for doc in documents)
 
 
 def _serialize_documents(documents) -> list[dict]:
     return [
         {
-            "content": document.page_content,
-            "chunk_index": document.metadata.get("chunk_index"),
+            "content": doc.page_content,
+            "chunk_index": doc.metadata.get("chunk_index"),
         }
-        for document in documents
+        for doc in documents
     ]
 
 
-@lru_cache(maxsize=1)
-def get_llm() -> ChatGroq:
-    return ChatGroq(model=get_settings().llm_model, temperature=0.7)
+def _get_llm() -> ChatGroq:
+    settings = get_settings()
+    return ChatGroq(
+        model=settings.llm_model,
+        temperature=0.7,
+        api_key=settings.groq_api_key,
+    )
 
 
 def _build_chain(retriever):
+    llm = _get_llm()
     answer_chain = (
         {
             "context": RunnableLambda(lambda x: _format_documents(x["context"])),
             "question": itemgetter("question"),
         }
         | PROMPT
-        | get_llm()
+        | llm
         | StrOutputParser()
     )
 

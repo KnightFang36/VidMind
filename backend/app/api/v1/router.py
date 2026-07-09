@@ -1,22 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request
 
-from backend.app.schemas.chat import ChatRequest, ChatResponse
-from backend.app.services.rag import RagService
+from fastapi import APIRouter
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+from backend.app.api.v1.routes.chat import router as chat_router
+from backend.app.api.v1.routes.index import router as index_router
 
-
-@router.post("", response_model=ChatResponse)
-def chat(payload: ChatRequest, request: Request) -> ChatResponse:
-    service: RagService = request.app.state.rag
-    try:
-        result = service.answer(payload.video_id, payload.query)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    return ChatResponse(
-        video_id=payload.video_id,
-        query=payload.query,
-        answer=result.answer,
-        sources=result.sources,
-    )
+api_router = APIRouter(prefix="/v1")
+api_router.include_router(chat_router)
+api_router.include_router(index_router)
