@@ -1,14 +1,21 @@
-fastapi
-uvicorn[standard]
-python-dotenv
-youtube-transcript-api
+# --- Core LangChain (0.3.x line — verified working set) ---
+# IMPORTANT: stay on the 0.3.x line. LangChain 1.x relocated several modules
+# (CacheBackedEmbeddings, storage, retrievers) and will break these imports.
+langchain>=0.3.30,<0.4
+langchain-core>=0.3.86,<0.4
+langchain-community>=0.3.31,<0.4
+langchain-text-splitters>=0.3.11,<0.4
+langchain-huggingface>=0.1.2,<0.2
+langchain-groq>=0.2.5,<0.3
 
-langchain
-langchain-core
-langchain-community
-langchain-text-splitters
-langchain-huggingface
-langchain-groq
+# --- Hybrid Retrieval (#3) ---
+rank-bm25>=0.2.2
+faiss-cpu>=1.8.0            # use faiss-gpu if you have CUDA
 
-sentence-transformers
-faiss-cpu
+# --- Embeddings (#15) + Cross-Encoder Reranking ---
+sentence-transformers>=3.0.0
+transformers>=4.44.0
+torch>=2.2.0
+
+# --- Transcript ingestion ---
+youtube-transcript-api>=1.0.0
