@@ -1,41 +1,112 @@
+# 
+# Upgrade — timestamp-aware ingestion
+#   • fetch_transcript()          -> single cleaned string  (kept for BC)
+#   • fetch_transcript_segments() -> list[TranscriptSegment] with start times
+#
+# Timestamps are required for the Citation Builder so every answer can point
+# back to the exact moment in the video the evidence came from.
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
 from youtube_transcript_api import TranscriptsDisabled, YouTubeTranscriptApi
 from youtube_transcript_api._transcripts import TranscriptList
 
+_MULTI_SPACE = re.compile(r"\s+")
 
-def fetch_transcript(video_id: str) -> str:
-    """Fetch transcript in any available language, preferring English."""
+
+@dataclass
+class TranscriptSegment:
+    """A single transcript snippet with its position in the video."""
+
+    text: str
+    start: float          # seconds from the start of the video
+    duration: float       # seconds
+
+
+def _clean(text: str) -> str:
+    """Collapse all runs of whitespace to a single space and strip."""
+    return _MULTI_SPACE.sub(" ", text).strip()
+
+
+def _select_transcript(transcript_list: TranscriptList):
+    """
+    Language preference cascade:
+      1. Manually-created English transcript
+      2. Auto-generated English transcript
+      3. Any manually-created transcript
+      4. Any transcript at all (last resort)
+    """
+    try:
+        return transcript_list.find_manually_created_transcript(
+            ["en", "en-US", "en-GB"]
+        )
+    except Exception:
+        pass
+    try:
+        return transcript_list.find_generated_transcript(["en", "en-US", "en-GB"])
+    except Exception:
+        pass
+    try:
+        return next(t for t in transcript_list if not t.is_generated)
+    except StopIteration:
+        pass
+    try:
+        return next(iter(transcript_list))
+    except StopIteration as exc:
+        raise ValueError("No transcripts are available for this video.") from exc
+
+
+def fetch_transcript_segments(video_id: str) -> list[TranscriptSegment]:
+    """
+    Return the transcript as an ordered list of timestamped segments.
+
+    Raises ValueError with a human-friendly message on any failure.
+    """
     try:
         transcript_list: TranscriptList = YouTubeTranscriptApi().list(video_id)
     except TranscriptsDisabled as exc:
         raise ValueError("Captions are disabled for this video.") from exc
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — surface a clean message to the API
         raise ValueError(f"Could not list transcripts for this video: {exc}") from exc
 
-    # Priority order: manual English → auto English → any manual → any auto
-    try:
-        transcript = transcript_list.find_manually_created_transcript(["en", "en-US", "en-GB"])
-    except Exception:
-        try:
-            transcript = transcript_list.find_generated_transcript(["en", "en-US", "en-GB"])
-        except Exception:
-            try:
-                # Fall back to first available manually created transcript in any language
-                transcript = next(
-                    t for t in transcript_list if not t.is_generated
-                )
-            except StopIteration:
-                try:
-                    # Last resort: first auto-generated transcript in any language
-                    transcript = next(iter(transcript_list))
-                except StopIteration:
-                    raise ValueError("No transcripts are available for this video.")
+    transcript = _select_transcript(transcript_list)
 
     try:
         snippets = transcript.fetch()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise ValueError(f"Could not fetch the transcript: {exc}") from exc
 
-    text = " ".join(snippet.text for snippet in snippets).strip()
-    if not text:
+    segments: list[TranscriptSegment] = []
+    for snip in snippets:
+        # youtube_transcript_api may return objects or dicts depending on version.
+        text = getattr(snip, "text", None)
+        start = getattr(snip, "start", None)
+        duration = getattr(snip, "duration", None)
+        if text is None and isinstance(snip, dict):
+            text = snip.get("text", "")
+            start = snip.get("start", 0.0)
+            duration = snip.get("duration", 0.0)
+
+        cleaned = _clean(text or "")
+        if not cleaned:
+            continue
+        segments.append(
+            TranscriptSegment(
+                text=cleaned,
+                start=float(start or 0.0),
+                duration=float(duration or 0.0),
+            )
+        )
+
+    if not segments:
         raise ValueError("The video transcript is empty.")
-    return text
+    return segments
+
+
+def fetch_transcript(video_id: str) -> str:
+    """Backwards-compatible helper: the whole transcript as one cleaned string."""
+    segments = fetch_transcript_segments(video_id)
+    return _clean(" ".join(seg.text for seg in segments))
