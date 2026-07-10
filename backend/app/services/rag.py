@@ -13,7 +13,7 @@ PROMPT = PromptTemplate(
     template=(
         "You are a helpful assistant that answers questions using only the provided "
         "video transcript context. If the answer is not in the context, say that you "
-        "don't know.\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:"
+        "don't know as it is not mentioned in the video.\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:"
     ),
     input_variables=["context", "question"],
 )
