@@ -64,23 +64,6 @@ VidMind/
 └── README.md
 ```
 
-## Run Locally
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env
-uvicorn backend.app.main:app --reload
-```
-
-In another terminal:
-
-```bash
-cd extension
-npm install
-npm run dev
-```
 
 For a production build, run `npm run build`, then load `extension/dist` as an
 unpacked extension in a Chromium-based browser.
