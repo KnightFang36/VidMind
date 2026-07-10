@@ -16,11 +16,18 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import (
-    DocumentCompressorPipeline,
-)
-from langchain.retrievers.multi_query import MultiQueryRetriever
+try:
+    from langchain.retrievers import ContextualCompressionRetriever
+    from langchain.retrievers.document_compressors import (
+        DocumentCompressorPipeline,
+    )
+    from langchain.retrievers.multi_query import MultiQueryRetriever
+except ImportError:
+    from langchain_core.retrievers import ContextualCompressionRetriever  # type: ignore
+    from langchain_core.retrievers.document_compressors import (  # type: ignore
+        DocumentCompressorPipeline,
+    )
+    from langchain_core.retrievers.multi_query import MultiQueryRetriever  # type: ignore
 from langchain_community.document_transformers import EmbeddingsRedundantFilter
 
 from backend.app.core.config import get_settings

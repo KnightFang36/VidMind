@@ -11,8 +11,15 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.storage import LocalFileStore
+
+try:
+    from langchain.embeddings import CacheBackedEmbeddings
+    from langchain.storage import LocalFileStore
+except ImportError:
+    from langchain_core.embeddings import CacheBackedEmbeddings  # LangChain 1.x
+    from langchain_core.stores import LocalFileStore  # type: ignore
+
+
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from backend.app.core.config import get_settings

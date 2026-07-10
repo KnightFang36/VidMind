@@ -16,8 +16,17 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from langchain.retrievers import EnsembleRetriever
-from langchain_community.retrievers import BM25Retriever
+try:
+    from langchain.retrievers import EnsembleRetriever
+    from langchain_community.retrievers import BM25Retriever
+except ImportError:
+    from langchain_core.retrievers import EnsembleRetriever  # type: ignore
+    try:
+        from langchain_community.retrievers import BM25Retriever
+    except ImportError:
+        from langchain_text_splitters import BM25Retriever  # type: ignore
+
+
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
