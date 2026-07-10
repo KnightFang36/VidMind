@@ -2,19 +2,49 @@ import { useEffect, useState } from "react"
 import { motion } from "motion/react"
 
 import { sendChatRequest } from "../api/chat"
+import type { ChatApiSource, ChatHistoryTurn } from "../api/chat"
 import { ChatInput } from "./components/ChatInput"
 import { ChatWindow } from "./components/ChatWindow"
 import { EmptyState } from "./components/EmptyState"
 import { Header } from "./components/Header"
 import { useVideoContext } from "./hooks/useVideoContext"
-import type { ChatMessage, VideoContext } from "./types"
+import type { ChatMessage, MessageSource, VideoContext } from "./types"
 import "./styles/index.css"
 
-function buildPayload(videoContext: VideoContext, query: string) {
+// Only send the last few turns so the backend memory prompt stays small.
+const MAX_HISTORY_TURNS = 6
+
+function buildHistory(messages: ChatMessage[]): ChatHistoryTurn[] {
+  return messages
+    .slice(-MAX_HISTORY_TURNS)
+    .map((message) => ({ role: message.role, content: message.content }))
+}
+
+function buildPayload(
+  videoContext: VideoContext,
+  query: string,
+  history: ChatHistoryTurn[]
+) {
   return {
     videoId: videoContext.videoId,
-    query
+    query,
+    history
   }
+}
+
+// Map the backend citation objects into the UI's MessageSource shape.
+function mapSources(sources: ChatApiSource[] | undefined): MessageSource[] {
+  if (!sources?.length) return []
+  return sources
+    .filter((source) => source.timestamp || source.snippet)
+    .map((source, index) => ({
+      id: `${source.parent_id ?? source.chunk_index ?? index}`,
+      timestamp: source.timestamp ?? "0:00",
+      label: source.snippet ?? undefined,
+      url: source.url ?? undefined,
+      startSeconds: source.start_seconds ?? undefined,
+      snippet: source.snippet ?? undefined
+    }))
 }
 
 export function App() {
@@ -33,7 +63,8 @@ export function App() {
     if (!draft.trim() || loading || !videoContext.available) return
 
     const query = draft.trim()
-    const payload = buildPayload(videoContext, query)
+    const history = buildHistory(messages)
+    const payload = buildPayload(videoContext, query, history)
     console.info("VidMind request payload", payload)
 
     setMessages((currentMessages) => [
@@ -54,7 +85,9 @@ export function App() {
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: response.answer
+          content: response.answer,
+          sources: mapSources(response.sources),
+          grounded: response.grounded ?? true
         }
       ])
     } catch (error) {
@@ -139,7 +172,15 @@ export function App() {
 
         <section className="min-h-0 flex-1 overflow-y-auto" aria-label="Conversation">
           {messages.length || loading ? (
-            <ChatWindow messages={messages} loading={loading} />
+            <ChatWindow
+              messages={messages}
+              loading={loading}
+              onSourceClick={(source) => {
+                if (source.url) {
+                  window.open(source.url, "_blank", "noopener,noreferrer")
+                }
+              }}
+            />
           ) : videoContext.available ? (
             <div className="flex min-h-full items-center justify-center px-4 py-8">
               <EmptyState onSuggestionSelect={setDraft} />

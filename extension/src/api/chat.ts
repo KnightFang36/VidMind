@@ -3,16 +3,39 @@
 // After fixing the backend router (prefix="/v1"), /api/v1/chat is now correct.
 // Also fixed: FastAPI returns JSON {detail:...} for errors, not plain text.
 
+/** A prior conversation turn, forwarded to enable backend conversation memory. */
+export interface ChatHistoryTurn {
+  role: "user" | "assistant"
+  content: string
+}
+
 export interface ChatApiRequest {
   videoId: string
   query: string
+  /** Optional prior turns so the backend can rewrite follow-ups into standalone questions. */
+  history?: ChatHistoryTurn[]
+}
+
+/** New richer citation shape emitted by the hybrid RAG pipeline. */
+export interface ChatApiSource {
+  video_id?: string | null
+  parent_id?: string | null
+  chunk_index?: number | null
+  start_seconds?: number | null
+  timestamp?: string | null
+  url?: string | null
+  snippet?: string | null
 }
 
 export interface ChatApiResponse {
   video_id: string
   query: string
   answer: string
-  sources?: Array<{ content: string; chunk_index: number | null }>
+  sources?: ChatApiSource[]
+  /** Question actually used for retrieval after history condensation. */
+  standalone_question?: string | null
+  /** False when the backend hallucination guard declined to answer. */
+  grounded?: boolean
 }
 
 export interface IndexApiRequest {
@@ -52,6 +75,7 @@ export async function sendChatRequest(payload: ChatApiRequest): Promise<ChatApiR
     body: JSON.stringify({
       video_id: payload.videoId,
       query: payload.query,
+      history: payload.history ?? [],
     }),
   })
 
