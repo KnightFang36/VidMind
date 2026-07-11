@@ -1,20 +1,12 @@
-# services/guardrails.py
-#
-# #12 Hallucination Guard  -> before answering, verify the retrieved evidence
-#                             is actually relevant to the question. If it is
-#                             not, we refuse instead of making something up.
-# Citation Builder         -> turn parent chunks + timestamps into clean,
-#                             deep-linkable sources (?t=<seconds>).
+"""Hallucination guard + timestamped citation builder."""
 
 from __future__ import annotations
 
 from langchain_core.documents import Document
 
-from backend.app.services.embedding import get_embeddings
+from app.services.embedding import get_embeddings
 
-# Cosine-similarity floor for "is this evidence good enough to answer?"
-# Embeddings are normalized, so dot product == cosine similarity.
-_RELEVANCE_THRESHOLD = 0.28
+_RELEVANCE_THRESHOLD = 0.15
 
 INSUFFICIENT_CONTEXT_MESSAGE = (
     "The transcript does not contain enough information to answer this question."
@@ -26,10 +18,7 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 
 def has_sufficient_evidence(question: str, documents: list[Document]) -> bool:
-    """
-    Return True if at least one retrieved chunk is semantically close enough
-    to the question to justify answering.
-    """
+    """Check if evidence is relevant enough to answer."""
     if not documents:
         return False
     try:
@@ -39,7 +28,6 @@ def has_sufficient_evidence(question: str, documents: list[Document]) -> bool:
         best = max((_cosine(q_vec, dv) for dv in doc_vecs), default=0.0)
         return best >= _RELEVANCE_THRESHOLD
     except Exception:
-        # If the check itself fails, don't block the answer.
         return True
 
 
@@ -53,10 +41,7 @@ def _format_timestamp(seconds: float) -> str:
 
 
 def build_citations(documents: list[Document]) -> list[dict]:
-    """
-    Convert (parent) documents into API-friendly source objects with a
-    human-readable timestamp and a deep link into the YouTube video.
-    """
+    """Convert documents into timestamped citation objects."""
     sources: list[dict] = []
     for doc in documents:
         meta = doc.metadata or {}

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
-from backend.app.schemas.index import IndexRequest, IndexResponse
-from backend.app.services.indexing import VideoIndexService
+from app.schemas.index import IndexRequest, IndexResponse
+from app.services.indexing import VideoIndexService
 
 router = APIRouter(prefix="/index", tags=["index"])
 

@@ -1,19 +1,4 @@
-# services/rag.py
-#
-# End-to-end modern RAG orchestration. Pipeline for every question:
-#
-#   history + question
-#        -> Standalone Question Generator          (memory.py, #10)
-#        -> ensure hybrid + parent index           (indexing.py, #3/#8)
-#        -> Adaptive Top-K                          (retrieval.py, #11)
-#        -> Hybrid Retrieval (FAISS + BM25)         (indexing.py, #3)
-#        -> MultiQuery + Cross-Encoder Rerank
-#           + Context Compression                   (retrieval.py, #7)
-#        -> Parent Document Retrieval               (indexing.py, #8)
-#        -> Hallucination Guard                      (guardrails.py, #12)
-#        -> Prompt + LLM (+ streaming)              (this file, #19)
-#        -> Citation Builder w/ timestamps          (guardrails.py)
-#   Retrieval + answer results are cached           (cache.py, #18)
+"""End-to-end RAG orchestration (sync + streaming)."""
 
 from __future__ import annotations
 
@@ -26,19 +11,19 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 
-from backend.app.core.config import get_settings
-from backend.app.services.cache import answer_cache, retrieval_cache, TTLCache
-from backend.app.services.guardrails import (
+from app.core.config import get_settings
+from app.services.cache import answer_cache, retrieval_cache, TTLCache
+from app.services.guardrails import (
     INSUFFICIENT_CONTEXT_MESSAGE,
     build_citations,
     has_sufficient_evidence,
 )
-from backend.app.services.indexing import VideoIndexService
-from backend.app.services.memory import (
+from app.services.indexing import VideoIndexService
+from app.services.memory import (
     ConversationMemory,
     build_standalone_question,
 )
-from backend.app.services.retrieval import adaptive_top_k, build_advanced_retriever
+from app.services.retrieval import adaptive_top_k, build_advanced_retriever
 
 PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -49,8 +34,8 @@ PROMPT = ChatPromptTemplate.from_messages(
             "Rules:\n"
             "1. If the answer is not in the context, reply exactly: "
             f"\"{INSUFFICIENT_CONTEXT_MESSAGE}\"\n"
-            "2. Never invent facts that are not supported by the context.\n"
-            "3. When helpful, cite the supporting moment using its [start] "
+            "2. Never invent facts not supported by the context.\n"
+            "3. When helpful, cite the supporting moment using [start] "
             "timestamp shown in the context.\n"
             "4. Be concise and accurate.",
         ),
@@ -103,16 +88,12 @@ class RagService:
     def __init__(self, video_index: VideoIndexService) -> None:
         self._video_index = video_index
 
-    # ------------------------------------------------------------------
-    # Shared retrieval path (memory -> retrieve -> parents)
-    # ------------------------------------------------------------------
     def _retrieve(
         self, video_id: str, query: str, history: Optional[list[dict]]
     ) -> tuple[ChatGroq, str, list[Document]]:
         llm = _get_llm(streaming=False)
 
         memory = _build_memory(history)
-        # #10 Conversation Memory: condense history + question into a standalone one.
         standalone = build_standalone_question(llm, memory, query)
 
         self._video_index.ensure_indexed(video_id)
@@ -127,28 +108,22 @@ class RagService:
         retriever = build_advanced_retriever(base, llm, k_final)
         child_docs = retriever.invoke(standalone)
 
-        # Parent Document Retrieval — swap children for their richer parents.
         parents = self._video_index.get_parents(video_id, child_docs)
         context_docs = parents or child_docs
 
         retrieval_cache.set(cache_key, context_docs)
         return llm, standalone, context_docs
 
-    # ------------------------------------------------------------------
-    # Non-streaming answer
-    # ------------------------------------------------------------------
     def answer(
         self, video_id: str, query: str, history: Optional[list[dict]] = None
     ) -> RagAnswer:
         llm, standalone, context_docs = self._retrieve(video_id, query, history)
 
-        # Answer cache (only meaningful for repeat questions on the same video).
         ans_key = TTLCache.make_key("answer", video_id, standalone)
         cached = answer_cache.get(ans_key)
         if cached is not None:
             return cached
 
-        # #12 Hallucination Guard
         if not has_sufficient_evidence(standalone, context_docs):
             result = RagAnswer(
                 answer=INSUFFICIENT_CONTEXT_MESSAGE,
@@ -173,21 +148,12 @@ class RagService:
         answer_cache.set(ans_key, result)
         return result
 
-    # ------------------------------------------------------------------
-    # #19 Streaming answer
-    # ------------------------------------------------------------------
     def answer_stream(
         self, video_id: str, query: str, history: Optional[list[dict]] = None
     ) -> Iterator[dict]:
-        """
-        Yield server-sent-event-friendly dicts:
-          {"type": "sources", "data": [...]}      (once, up front)
-          {"type": "token",   "data": "..."}      (many)
-          {"type": "done"}                          (once)
-        """
+        """Yield streaming response events."""
         _, standalone, context_docs = self._retrieve(video_id, query, history)
 
-        # #12 Hallucination Guard — stream the refusal instead of hallucinating.
         if not has_sufficient_evidence(standalone, context_docs):
             yield {"type": "sources", "data": []}
             yield {"type": "token", "data": INSUFFICIENT_CONTEXT_MESSAGE}

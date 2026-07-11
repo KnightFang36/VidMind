@@ -1,13 +1,4 @@
-# services/indexing.py
-#
-# Upgrades implemented here:
-#   #3  Hybrid Retrieval      -> FAISS (dense) + BM25 (sparse) EnsembleRetriever
-#   #8  Parent Document Retr. -> small child chunks are indexed for precision,
-#                                large parent chunks are returned for context
-#   Timestamps                -> every chunk carries a `start` (seconds) so the
-#                                Citation Builder can deep-link into the video
-#   FAISS disk persistence    -> save_local / load_local  (+ pickled BM25/parents)
-#   Path-traversal guard      -> video_id character validation
+"""Hybrid retrieval index (FAISS + BM25) with parent-document retrieval."""
 
 from __future__ import annotations
 
@@ -16,47 +7,27 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    from langchain.retrievers import EnsembleRetriever
-    from langchain_community.retrievers import BM25Retriever
-except ImportError:
-    from langchain_core.retrievers import EnsembleRetriever  # type: ignore
-    try:
-        from langchain_community.retrievers import BM25Retriever
-    except ImportError:
-        from langchain_text_splitters import BM25Retriever  # type: ignore
-
-
+from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from backend.app.services.document_ingestion import (
+from app.services.document_ingestion import (
     TranscriptSegment,
     fetch_transcript_segments,
 )
-from backend.app.services.embedding import get_embeddings
+from app.services.embedding import get_embeddings
 
-# ---------------------------------------------------------------------------
-# Storage layout
-#   data/faiss_indexes/<video_id>/index.faiss  — FAISS dense index (children)
-#   data/faiss_indexes/<video_id>/bm25.pkl     — BM25 retriever   (children)
-#   data/faiss_indexes/<video_id>/parents.pkl  — parent_id -> parent Document
-# ---------------------------------------------------------------------------
 INDEX_DIR = Path(__file__).resolve().parents[3] / "data" / "faiss_indexes"
 _SAFE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
-# Parent / child chunking (Parent Document Retrieval)
 _PARENT_SIZE = 2000
 _PARENT_OVERLAP = 200
 _CHILD_SIZE = 400
 _CHILD_OVERLAP = 80
 
-# Hybrid weighting: 60% semantic, 40% keyword
 _FAISS_WEIGHT = 0.6
 _BM25_WEIGHT = 0.4
-
-# Candidates each sub-retriever fetches before Reciprocal Rank Fusion.
 _K_SUB = 12
 
 
@@ -83,9 +54,6 @@ class VideoIndexService:
         )
         INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------------------------------------------
-    # Path helpers
-    # ------------------------------------------------------------------
     def _dir(self, video_id: str) -> Path:
         if not _SAFE_VIDEO_ID.match(video_id):
             raise ValueError(f"video_id '{video_id}' contains unsupported characters.")
@@ -97,32 +65,20 @@ class VideoIndexService:
     def _bm25_path(self, video_id: str) -> Path:
         return self._dir(video_id) / "bm25.pkl"
 
-    # ------------------------------------------------------------------
-    # Chunk construction with timestamp propagation
-    # ------------------------------------------------------------------
     def _build_documents(
         self, video_id: str, segments: list[TranscriptSegment]
     ) -> tuple[list[Document], dict[str, Document]]:
-        """
-        Turn timestamped segments into:
-          • child docs  (small, indexed for retrieval)
-          • parents map (large, returned for context)
-
-        Timestamps are propagated by tracking each segment's character offset
-        in the concatenated transcript and mapping chunk offsets back to a time.
-        """
-        # Concatenate while recording (char_offset -> start_seconds) checkpoints.
+        """Build child and parent documents with timestamp propagation."""
         offsets: list[tuple[int, float]] = []
         cursor = 0
         pieces: list[str] = []
         for seg in segments:
             offsets.append((cursor, seg.start))
             pieces.append(seg.text)
-            cursor += len(seg.text) + 1  # +1 for the join space
+            cursor += len(seg.text) + 1
         full_text = " ".join(pieces)
 
         def time_at(offset: int) -> float:
-            """Nearest segment start time at or before a character offset."""
             best = 0.0
             for off, start in offsets:
                 if off <= offset:
@@ -138,7 +94,6 @@ class VideoIndexService:
 
         parent_texts = self._parent_splitter.split_text(full_text)
         for p_i, p_text in enumerate(parent_texts):
-            # locate this parent's offset to derive its timestamp
             p_offset = full_text.find(p_text, search_from)
             if p_offset == -1:
                 p_offset = search_from
@@ -155,7 +110,6 @@ class VideoIndexService:
                 },
             )
 
-            # split the parent into children
             local_from = 0
             for c_text in self._child_splitter.split_text(p_text):
                 c_local = p_text.find(c_text, local_from)
@@ -179,9 +133,6 @@ class VideoIndexService:
 
         return child_docs, parents
 
-    # ------------------------------------------------------------------
-    # Persistence
-    # ------------------------------------------------------------------
     def _load_from_disk(self, video_id: str) -> _VideoArtifacts | None:
         d = self._dir(video_id)
         faiss_file = d / "index.faiss"
@@ -193,14 +144,11 @@ class VideoIndexService:
             str(d), get_embeddings(), allow_dangerous_deserialization=True
         )
         with self._bm25_path(video_id).open("rb") as fh:
-            bm25 = pickle.load(fh)  # noqa: S301 — trusted local artifact
+            bm25 = pickle.load(fh)
         with self._parents_path(video_id).open("rb") as fh:
-            parents = pickle.load(fh)  # noqa: S301
+            parents = pickle.load(fh)
         return _VideoArtifacts(faiss, bm25, parents, faiss.index.ntotal)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def index_video(self, video_id: str, *, force: bool = False) -> int:
         video_id = video_id.strip()
         if not video_id:
@@ -219,19 +167,16 @@ class VideoIndexService:
         if not child_docs:
             raise ValueError("Transcript produced zero chunks after splitting.")
 
-        # Dense index (FAISS) over children
         faiss = FAISS.from_documents(child_docs, get_embeddings())
         d = self._dir(video_id)
         d.mkdir(parents=True, exist_ok=True)
         faiss.save_local(str(d))
 
-        # Sparse index (BM25) over children
         bm25 = BM25Retriever.from_documents(child_docs)
         bm25.k = _K_SUB
         with self._bm25_path(video_id).open("wb") as fh:
             pickle.dump(bm25, fh)
 
-        # Parent store
         with self._parents_path(video_id).open("wb") as fh:
             pickle.dump(parents, fh)
 
@@ -255,25 +200,31 @@ class VideoIndexService:
             self.ensure_indexed(video_id)
         return self._cache[video_id]
 
-    def get_hybrid_retriever(self, video_id: str, k_sub: int = _K_SUB) -> EnsembleRetriever:
-        """Return the FAISS + BM25 EnsembleRetriever (Reciprocal Rank Fusion)."""
+    def get_hybrid_retriever(self, video_id: str, k_sub: int = _K_SUB):
+        """Return a simple hybrid retriever combining FAISS + BM25."""
         art = self._artifacts(video_id)
-
         faiss_retriever = art.faiss.as_retriever(
             search_type="similarity", search_kwargs={"k": k_sub}
         )
         art.bm25.k = k_sub
-
-        return EnsembleRetriever(
-            retrievers=[faiss_retriever, art.bm25],
-            weights=[_FAISS_WEIGHT, _BM25_WEIGHT],
-        )
+        
+        # Simple fusion: combine results from both retrievers
+        class SimpleEnsemble:
+            def __init__(self, faiss_ret, bm25_ret):
+                self.faiss = faiss_ret
+                self.bm25 = bm25_ret
+            
+            def invoke(self, query):
+                faiss_docs = self.faiss.invoke(query)
+                bm25_docs = self.bm25.invoke(query)
+                seen = {doc.metadata.get("chunk_index") for doc in faiss_docs}
+                combined = faiss_docs + [d for d in bm25_docs if d.metadata.get("chunk_index") not in seen]
+                return combined[:k_sub]
+        
+        return SimpleEnsemble(faiss_retriever, art.bm25)
 
     def get_parents(self, video_id: str, documents: list[Document]) -> list[Document]:
-        """
-        Parent Document Retrieval: map retrieved child chunks back to their
-        (larger) parent documents, de-duplicated and order-preserving.
-        """
+        """Parent Document Retrieval: map children back to richer parents."""
         art = self._artifacts(video_id)
         seen: set[str] = set()
         parents: list[Document] = []

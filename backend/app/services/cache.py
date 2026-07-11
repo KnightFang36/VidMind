@@ -1,13 +1,4 @@
-# services/cache.py
-#
-# Upgrade #18 — Caching
-#   A tiny, dependency-free TTL cache used for:
-#     • retrieval results   (video_id + question -> docs)
-#     • final LLM answers    (video_id + question -> answer + sources)
-#   Embedding caching is handled separately in embedding.py.
-#
-# In-process + LRU + TTL keeps things simple and fast. Swap for Redis in a
-# multi-worker deployment if you need a shared cache.
+"""Thread-safe TTL/LRU caches for retrieval + answers."""
 
 from __future__ import annotations
 
@@ -24,7 +15,7 @@ class TTLCache:
     def __init__(self, maxsize: int = 512, ttl_seconds: float = 3600.0) -> None:
         self._maxsize = maxsize
         self._ttl = ttl_seconds
-        self._store: "OrderedDict[str, tuple[float, Any]]" = OrderedDict()
+        self._store: OrderedDict[str, tuple[float, Any]] = OrderedDict()
         self._lock = threading.Lock()
 
     @staticmethod
@@ -41,7 +32,7 @@ class TTLCache:
             if expires_at < time.time():
                 self._store.pop(key, None)
                 return None
-            self._store.move_to_end(key)   # mark as recently used
+            self._store.move_to_end(key)
             return value
 
     def set(self, key: str, value: Any) -> None:
@@ -49,13 +40,12 @@ class TTLCache:
             self._store[key] = (time.time() + self._ttl, value)
             self._store.move_to_end(key)
             while len(self._store) > self._maxsize:
-                self._store.popitem(last=False)   # evict least-recently-used
+                self._store.popitem(last=False)
 
     def clear(self) -> None:
         with self._lock:
             self._store.clear()
 
 
-# Shared singletons used across the RAG service.
-retrieval_cache = TTLCache(maxsize=512, ttl_seconds=1800.0)   # 30 min
-answer_cache = TTLCache(maxsize=512, ttl_seconds=1800.0)      # 30 min
+retrieval_cache = TTLCache(maxsize=512, ttl_seconds=1800.0)
+answer_cache = TTLCache(maxsize=512, ttl_seconds=1800.0)

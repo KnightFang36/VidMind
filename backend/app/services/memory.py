@@ -1,11 +1,4 @@
-# services/memory.py
-#
-# Upgrade #10 — Conversation Memory
-#   Chat history + the current question are condensed into a single,
-#   self-contained "standalone question" before retrieval, so follow-ups
-#   like "what about the second one?" actually retrieve the right context.
-#
-#   Flow:  history + question  ->  Standalone Question Generator (LLM)  ->  retriever
+"""Conversation memory + standalone question generation."""
 
 from __future__ import annotations
 
@@ -14,13 +7,12 @@ from dataclasses import dataclass, field
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-# Keep only the last N turns to bound token usage.
 _MAX_TURNS = 6
 
 
 @dataclass
 class ChatTurn:
-    role: str      # "user" | "assistant"
+    role: str
     content: str
 
 
@@ -66,12 +58,7 @@ _CONDENSE_PROMPT = ChatPromptTemplate.from_messages(
 
 
 def build_standalone_question(llm, memory: ConversationMemory, question: str) -> str:
-    """
-    Condense chat history + the new question into one standalone question.
-
-    If there is no prior history, the original question is returned as-is
-    (no extra LLM call).
-    """
+    """Condense chat history + question into a standalone question."""
     history = memory.as_text()
     if not history.strip():
         return question
@@ -81,5 +68,4 @@ def build_standalone_question(llm, memory: ConversationMemory, question: str) ->
         standalone = chain.invoke({"history": history, "question": question}).strip()
         return standalone or question
     except Exception:
-        # On any failure, fall back to the raw question rather than breaking the flow.
         return question

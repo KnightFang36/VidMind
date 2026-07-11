@@ -1,10 +1,4 @@
-# 
-# Upgrade — timestamp-aware ingestion
-#   • fetch_transcript()          -> single cleaned string  (kept for BC)
-#   • fetch_transcript_segments() -> list[TranscriptSegment] with start times
-#
-# Timestamps are required for the Citation Builder so every answer can point
-# back to the exact moment in the video the evidence came from.
+"""Timestamp-aware transcript ingestion."""
 
 from __future__ import annotations
 
@@ -19,26 +13,20 @@ _MULTI_SPACE = re.compile(r"\s+")
 
 @dataclass
 class TranscriptSegment:
-    """A single transcript snippet with its position in the video."""
+    """A transcript snippet with its position in the video."""
 
     text: str
-    start: float          # seconds from the start of the video
-    duration: float       # seconds
+    start: float
+    duration: float
 
 
 def _clean(text: str) -> str:
-    """Collapse all runs of whitespace to a single space and strip."""
+    """Collapse whitespace and strip."""
     return _MULTI_SPACE.sub(" ", text).strip()
 
 
 def _select_transcript(transcript_list: TranscriptList):
-    """
-    Language preference cascade:
-      1. Manually-created English transcript
-      2. Auto-generated English transcript
-      3. Any manually-created transcript
-      4. Any transcript at all (last resort)
-    """
+    """Language preference cascade."""
     try:
         return transcript_list.find_manually_created_transcript(
             ["en", "en-US", "en-GB"]
@@ -60,28 +48,23 @@ def _select_transcript(transcript_list: TranscriptList):
 
 
 def fetch_transcript_segments(video_id: str) -> list[TranscriptSegment]:
-    """
-    Return the transcript as an ordered list of timestamped segments.
-
-    Raises ValueError with a human-friendly message on any failure.
-    """
+    """Return timestamped transcript segments."""
     try:
         transcript_list: TranscriptList = YouTubeTranscriptApi().list(video_id)
     except TranscriptsDisabled as exc:
         raise ValueError("Captions are disabled for this video.") from exc
-    except Exception as exc:  # noqa: BLE001 — surface a clean message to the API
-        raise ValueError(f"Could not list transcripts for this video: {exc}") from exc
+    except Exception as exc:
+        raise ValueError(f"Could not list transcripts: {exc}") from exc
 
     transcript = _select_transcript(transcript_list)
 
     try:
         snippets = transcript.fetch()
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(f"Could not fetch the transcript: {exc}") from exc
+    except Exception as exc:
+        raise ValueError(f"Could not fetch transcript: {exc}") from exc
 
     segments: list[TranscriptSegment] = []
     for snip in snippets:
-        # youtube_transcript_api may return objects or dicts depending on version.
         text = getattr(snip, "text", None)
         start = getattr(snip, "start", None)
         duration = getattr(snip, "duration", None)
@@ -107,6 +90,6 @@ def fetch_transcript_segments(video_id: str) -> list[TranscriptSegment]:
 
 
 def fetch_transcript(video_id: str) -> str:
-    """Backwards-compatible helper: the whole transcript as one cleaned string."""
+    """Backwards-compatible: whole transcript as one string."""
     segments = fetch_transcript_segments(video_id)
     return _clean(" ".join(seg.text for seg in segments))

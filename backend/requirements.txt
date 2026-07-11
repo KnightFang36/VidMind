@@ -1,21 +1,30 @@
-# --- Core LangChain (0.3.x line — verified working set) ---
-# IMPORTANT: stay on the 0.3.x line. LangChain 1.x relocated several modules
-# (CacheBackedEmbeddings, storage, retrievers) and will break these imports.
-langchain>=0.3.30,<0.4
-langchain-core>=0.3.86,<0.4
-langchain-community>=0.3.31,<0.4
-langchain-text-splitters>=0.3.11,<0.4
-langchain-huggingface>=0.1.2,<0.2
-langchain-groq>=0.2.5,<0.3
+# FastAPI & Uvicorn
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
 
-# --- Hybrid Retrieval (#3) ---
+# LangChain (0.3.x line — verified working)
+langchain==0.3.30
+langchain-core==0.3.86
+langchain-community==0.3.31
+langchain-text-splitters==0.3.11
+langchain-huggingface==0.1.2
+langchain-groq==0.2.5
+
+# Hybrid Retrieval
 rank-bm25>=0.2.2
-faiss-cpu>=1.8.0            # use faiss-gpu if you have CUDA
+faiss-cpu>=1.8.0
 
-# --- Embeddings (#15) + Cross-Encoder Reranking ---
+# Embeddings & LLM
 sentence-transformers>=3.0.0
 transformers>=4.44.0
 torch>=2.2.0
 
-# --- Transcript ingestion ---
+# Transcript ingestion
 youtube-transcript-api>=1.0.0
+
+# Utilities
+requests>=2.31.0
+httpx>=0.24.0
