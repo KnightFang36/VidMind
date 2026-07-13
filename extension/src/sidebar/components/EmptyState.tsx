@@ -9,12 +9,12 @@ const suggestions = [
   {
     title: "Summarize this video",
     icon: Sparkles,
-    prompt: "• Summarize this video in  bullet points.\n• Keep it concise and accurate.\n• Highlight the main conclusion first."
+    prompt: "• Summarize this video .\n• Keep it detailed and accurate.\n• Highlight the main idea and conclusions at the end."
   },
   {
-    title: "Explain the idea clearly",
+    title: "Generate Questions and Answers",
     icon: MessageCircleQuestion,
-    prompt: "• Explain the main idea of this video clearly.\n• Use simple language.\n• Assume I am new to the topic."
+    prompt: "• Generate a question about the main idea of this video.\n• Provide a short answer (1-2 sentences).\n• Provide a long answer (3-5 sentences)."
   },
   {
     title: "Extract key moments",

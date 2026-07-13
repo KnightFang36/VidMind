@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 
 from app.services.embedding import get_embeddings
 
-_RELEVANCE_THRESHOLD = 0.15
+_RELEVANCE_THRESHOLD = 0.0
 
 INSUFFICIENT_CONTEXT_MESSAGE = (
     "The transcript does not contain enough information to answer this question."

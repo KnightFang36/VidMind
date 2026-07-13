@@ -91,6 +91,7 @@ class RagService:
     def _retrieve(
         self, video_id: str, query: str, history: Optional[list[dict]]
     ) -> tuple[ChatGroq, str, list[Document]]:
+        """Retrieve documents with full pipeline."""
         llm = _get_llm(streaming=False)
 
         memory = _build_memory(history)
@@ -105,7 +106,7 @@ class RagService:
             return llm, standalone, cached_docs
 
         base = self._video_index.get_hybrid_retriever(video_id, k_sub=k_sub)
-        retriever = build_advanced_retriever(base, llm, k_final)
+        retriever = build_advanced_retriever(base, llm, k_final, use_multi_query=True)
         child_docs = retriever.invoke(standalone)
 
         parents = self._video_index.get_parents(video_id, child_docs)
@@ -117,6 +118,7 @@ class RagService:
     def answer(
         self, video_id: str, query: str, history: Optional[list[dict]] = None
     ) -> RagAnswer:
+        """Non-streaming answer."""
         llm, standalone, context_docs = self._retrieve(video_id, query, history)
 
         ans_key = TTLCache.make_key("answer", video_id, standalone)
@@ -151,7 +153,7 @@ class RagService:
     def answer_stream(
         self, video_id: str, query: str, history: Optional[list[dict]] = None
     ) -> Iterator[dict]:
-        """Yield streaming response events."""
+        """Stream answer tokens in real-time."""
         _, standalone, context_docs = self._retrieve(video_id, query, history)
 
         if not has_sufficient_evidence(standalone, context_docs):
@@ -164,6 +166,7 @@ class RagService:
 
         stream_llm = _get_llm(streaming=True)
         chain = PROMPT | stream_llm | StrOutputParser()
+        
         for chunk in chain.stream(
             {"context": _format_context(context_docs), "question": standalone}
         ):
